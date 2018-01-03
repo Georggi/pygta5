@@ -1,6 +1,6 @@
 # Using Python programming to Play War Thunder
 
-Modified for War Thunder
+Modified for War Thunder, credit for most of the code to sentdex
 
 ----------------------------------------------------------------------------------------------------------------------------------
 
