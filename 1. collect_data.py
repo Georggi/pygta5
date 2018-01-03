@@ -1,24 +1,14 @@
 import numpy as np
-from grabscreen import grab_screen
-import cv2
 import time
-from getkeys import key_check
+from getkeys import key_check, keylist
 import os
-
-w = [1,0,0,0,0,0,0,0,0]
-s = [0,1,0,0,0,0,0,0,0]
-a = [0,0,1,0,0,0,0,0,0]
-d = [0,0,0,1,0,0,0,0,0]
-wa = [0,0,0,0,1,0,0,0,0]
-wd = [0,0,0,0,0,1,0,0,0]
-sa = [0,0,0,0,0,0,1,0,0]
-sd = [0,0,0,0,0,0,0,1,0]
-nk = [0,0,0,0,0,0,0,0,1]
-
+from MouseThread import *
+from getFrame import getFrameThread
+import _thread
 starting_value = 1
 
 while True:
-    file_name = 'training_data-{}.npy'.format(starting_value)
+    file_name = 'E:/Programming/training_data-{}.npy'.format(starting_value)
 
     if os.path.isfile(file_name):
         print('File exists, moving along',starting_value)
@@ -30,31 +20,13 @@ while True:
 
 
 def keys_to_output(keys):
-    '''
-    Convert keys to a ...multi-hot... array
-     0  1  2  3  4   5   6   7    8
-    [W, S, A, D, WA, WD, SA, SD, NOKEY] boolean values.
-    '''
-    output = [0,0,0,0,0,0,0,0,0]
+    output = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    for n in keylist:
+        for i in keys:
+            if i == n:
+                output[n] = 1
+                break
 
-    if 'W' in keys and 'A' in keys:
-        output = wa
-    elif 'W' in keys and 'D' in keys:
-        output = wd
-    elif 'S' in keys and 'A' in keys:
-        output = sa
-    elif 'S' in keys and 'D' in keys:
-        output = sd
-    elif 'W' in keys:
-        output = w
-    elif 'S' in keys:
-        output = s
-    elif 'A' in keys:
-        output = a
-    elif 'D' in keys:
-        output = d
-    else:
-        output = nk
     return output
 
 
@@ -66,43 +38,46 @@ def main(file_name, starting_value):
         print(i+1)
         time.sleep(1)
 
-    last_time = time.time()
     paused = False
     print('STARTING!!!')
-    while(True):
-        
+    frameThread = getFrameThread().start()
+
+    mousecache = [0, 0, 0, 0]
+    mthr = MouseThread(mousecache)
+    mthr.start()
+    while True:
+        last_time = time.time()
         if not paused:
-            screen = grab_screen(region=(0,40,1920,1120))
-            last_time = time.time()
-            # resize to something a bit more acceptable for a CNN
-            screen = cv2.resize(screen, (480,270))
-            # run a color convert:
-            screen = cv2.cvtColor(screen, cv2.COLOR_BGR2RGB)
-            
+            screen = frameThread.returnFrame()
             keys = key_check()
             output = keys_to_output(keys)
-            training_data.append([screen,output])
+            output[256] = mousecache[0] / 256
+            output[257] = mousecache[1] / 256
+            output[258] = mousecache[2] / 256
+            output[259] = mousecache[3] / 256
 
-            #print('loop took {} seconds'.format(time.time()-last_time))
-            last_time = time.time()
-##            cv2.imshow('window',cv2.resize(screen,(640,360)))
-##            if cv2.waitKey(25) & 0xFF == ord('q'):
-##                cv2.destroyAllWindows()
-##                break
+            training_data.append([screen, output])
+            mousecache[0] = 0
+            mousecache[1] = 0
+            mousecache[2] = 0
+            mousecache[3] = 0
 
-            if len(training_data) % 100 == 0:
+            if len(training_data) % 64 == 0:
                 print(len(training_data))
                 
-                if len(training_data) == 500:
-                    np.save(file_name,training_data)
-                    print('SAVED')
+                if len(training_data) == 256:
+                    _thread.start_new_thread(np.save, (file_name, training_data))
+                    print('SAVED ' + file_name)
+                    np.empty(training_data)
                     training_data = []
                     starting_value += 1
-                    file_name = 'X:/pygta5/phase7-larger-color/training_data-{}.npy'.format(starting_value)
-
-                    
+                    file_name = 'E:/Programming/training_data-{}.npy'.format(starting_value)
+                    #print("Loop took", time.time() - last_time)
+            sleep = 0.04-(time.time() - last_time)
+            if sleep > 0:
+                time.sleep(sleep)
         keys = key_check()
-        if 'T' in keys:
+        if 0x50 in keys:
             if paused:
                 paused = False
                 print('unpaused!')

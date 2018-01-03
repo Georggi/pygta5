@@ -8,17 +8,6 @@ import time
 
 SendInput = ctypes.windll.user32.SendInput
 
-
-W = 0x11
-A = 0x1E
-S = 0x1F
-D = 0x20
-
-NP_2 = 0x50
-NP_4 = 0x4B
-NP_6 = 0x4D
-NP_8 = 0x48
-
 # C struct redefinitions 
 PUL = ctypes.POINTER(ctypes.c_ulong)
 class KeyBdInput(ctypes.Structure):
@@ -52,6 +41,7 @@ class Input(ctypes.Structure):
 
 # Actuals Functions
 
+
 def PressKey(hexKeyCode):
     extra = ctypes.c_ulong(0)
     ii_ = Input_I()
@@ -59,12 +49,33 @@ def PressKey(hexKeyCode):
     x = Input( ctypes.c_ulong(1), ii_ )
     ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
 
+
+def MoveMouse(dx, dy, lstate=0, rstate=0):
+    extra = ctypes.c_ulong(0)
+    dxc = ctypes.c_long(dx)
+    dyc = ctypes.c_long(dy)
+    flags = 0x0001
+    if lstate == 1:
+        flags |= 0x0002
+    elif lstate == 2:
+        flags |= 0x0004
+    if rstate == 1:
+        flags |= 0x0008
+    elif rstate == 2:
+        flags |= 0x0010
+    ii_ = Input_I()
+    ii_.mi = MouseInput(dxc, dyc, 0, flags, 0, ctypes.pointer(extra))
+    x = Input(ctypes.c_ulong(0), ii_)
+    ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
+
 def ReleaseKey(hexKeyCode):
     extra = ctypes.c_ulong(0)
     ii_ = Input_I()
     ii_.ki = KeyBdInput( 0, hexKeyCode, 0x0008 | 0x0002, 0, ctypes.pointer(extra) )
     x = Input( ctypes.c_ulong(1), ii_ )
     ctypes.windll.user32.SendInput(1, ctypes.pointer(x), ctypes.sizeof(x))
+
 
 if __name__ == '__main__':
     PressKey(0x11)
