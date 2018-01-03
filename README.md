@@ -1,4 +1,8 @@
-# Using Python programming to Play Grand Theft Auto 5
+# Using Python programming to Play War Thunder
+
+Modified for War Thunder
+
+----------------------------------------------------------------------------------------------------------------------------------
 
 Explorations of Using Python to play Grand Theft Auto 5, mainly for the purposes of creating self-driving cars and other vehicles.
 
